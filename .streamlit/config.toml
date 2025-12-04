@@ -1,0 +1,13 @@
+[server]
+# ファイル保存時に自動リロード
+runOnSave = true
+
+# Docker環境ではpollが必要
+fileWatcherType = "poll"
+
+# ブラウザを自動で開かない（Docker環境向け）
+headless = true
+
+[browser]
+# 使用統計を送信しない
+gatherUsageStats = false

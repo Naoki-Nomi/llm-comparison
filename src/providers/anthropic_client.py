@@ -1,0 +1,64 @@
+"""Anthropic APIクライアント"""
+import time
+import anthropic
+from .base import BaseLLMClient, LLMResponse
+
+class AnthropicClient(BaseLLMClient):
+    def __init__(self, api_key: str):
+        super().__init__(api_key)
+        self.client = anthropic.Anthropic(api_key=api_key)
+
+    def generate(self, prompt: str, model_id: str,
+                 extended_thinking: bool = False,
+                 budget_tokens: int = 8000,
+                 temperature: float = 0.0,
+                 max_tokens: int = 10000,
+                 **kwargs) -> LLMResponse:
+        try:
+            start = time.perf_counter()
+
+            params = {
+                "model": model_id,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+
+            thinking_tokens = 0
+
+            if extended_thinking:
+                adjusted_max_tokens = max(max_tokens, budget_tokens + 1000)
+                params["max_tokens"] = adjusted_max_tokens
+                params["thinking"] = {
+                    "type": "enabled",
+                    "budget_tokens": budget_tokens
+                }
+            else:
+                params["max_tokens"] = max_tokens
+                params["temperature"] = temperature
+
+            response = self.client.messages.create(**params)
+            elapsed_ms = (time.perf_counter() - start) * 1000
+
+            # レスポンスからテキストと思考トークンを抽出
+            content = ""
+            for block in response.content:
+                if block.type == "text":
+                    content += block.text
+                elif block.type == "thinking":
+                    # 思考ブロックのトークン数をカウント（概算）
+                    thinking_tokens = len(block.thinking) // 4  # 概算
+
+            # 使用量情報から正確なトークン数を取得
+            input_tokens = response.usage.input_tokens
+            output_tokens = response.usage.output_tokens
+
+            return LLMResponse(
+                content,
+                input_tokens,
+                output_tokens,
+                elapsed_ms,
+                model_id,
+                None,
+                thinking_tokens,
+            )
+        except Exception as e:
+            return LLMResponse("", 0, 0, 0, model_id, str(e), 0)
