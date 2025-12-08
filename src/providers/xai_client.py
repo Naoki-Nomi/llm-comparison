@@ -28,14 +28,35 @@ class XAIClient(BaseLLMClient):
                 temperature=temperature,
             )
             elapsed_ms = (time.perf_counter() - start) * 1000
+
+            # トークン情報を取得
+            input_tokens = response.usage.prompt_tokens if response.usage else 0
+            output_tokens = response.usage.completion_tokens if response.usage else 0
+
+            # Grokはデフォルトでsafety promptが挿入されキャッシュされるため、差し引く
+            if response.usage and hasattr(response.usage, 'prompt_tokens_details'):
+                details = response.usage.prompt_tokens_details
+                if details and hasattr(details, 'cached_tokens') and details.cached_tokens:
+                    input_tokens = input_tokens - details.cached_tokens
+
+            # reasoning_tokensはcompletion_tokensに含まれないため、足し合わせる
+            if response.usage and hasattr(response.usage, 'completion_tokens_details'):
+                details = response.usage.completion_tokens_details
+                if details and hasattr(details, 'reasoning_tokens') and details.reasoning_tokens:
+                    output_tokens = output_tokens + details.reasoning_tokens
+
+            # 生レスポンスを辞書に変換
+            raw = response.model_dump() if hasattr(response, 'model_dump') else {}
+
             return LLMResponse(
                 response.choices[0].message.content or "",
-                response.usage.prompt_tokens if response.usage else 0,
-                response.usage.completion_tokens if response.usage else 0,
+                input_tokens,
+                output_tokens,
                 elapsed_ms,
                 model_id,
                 None,
                 0,
+                raw,
             )
         except Exception as e:
             return LLMResponse("", 0, 0, 0, model_id, str(e), 0)

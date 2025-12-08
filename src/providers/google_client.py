@@ -42,11 +42,23 @@ class GoogleClient(BaseLLMClient):
             )
             elapsed_ms = (time.perf_counter() - start) * 1000
 
-            input_tokens = output_tokens = 0
+            input_tokens = 0
+            output_tokens = 0
+            raw = {}
             if hasattr(response, "usage_metadata") and response.usage_metadata:
                 input_tokens = getattr(response.usage_metadata, "prompt_token_count", 0) or 0
-                output_tokens = getattr(response.usage_metadata, "candidates_token_count", 0) or 0
+                total_tokens = getattr(response.usage_metadata, "total_token_count", 0) or 0
+                # output_tokens = total - input（思考トークン込み）
+                output_tokens = total_tokens - input_tokens
+                # usage_metadataを辞書に変換
+                if hasattr(response.usage_metadata, 'model_dump'):
+                    raw["usage_metadata"] = response.usage_metadata.model_dump()
+                elif hasattr(response.usage_metadata, '__dict__'):
+                    raw["usage_metadata"] = dict(response.usage_metadata.__dict__)
 
-            return LLMResponse(response.text or "", input_tokens, output_tokens, elapsed_ms, model_id, None, 0)
+            # モデル情報を追加
+            raw["model"] = model_id
+
+            return LLMResponse(response.text or "", input_tokens, output_tokens, elapsed_ms, model_id, None, 0, raw)
         except Exception as e:
             return LLMResponse("", 0, 0, 0, model_id, str(e), 0)

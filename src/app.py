@@ -204,6 +204,10 @@ def main():
                     st.metric("コスト", f"¥{r.calculate_cost(model.input_price, model.output_price) * USD_TO_JPY:.4f}")
                     st.text(r.content)
 
+                    # 生のレスポンスをJSON表示
+                    with st.expander("📋 生のレスポンス（JSON）"):
+                        st.json(r.raw_response)
+
     with tab2:
         cols = st.columns(4)
         selected = []
@@ -238,8 +242,6 @@ def main():
                             "出力トークン": r.output_tokens,
                             "コスト(¥)": r.calculate_cost(m.input_price, m.output_price) * USD_TO_JPY,
                         }
-                        if r.reasoning_tokens > 0:
-                            row["思考トークン"] = r.reasoning_tokens
                         chart_data.append(row)
                     else:
                         st.error(f"{m.name}: {r.error}")

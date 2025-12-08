@@ -18,7 +18,7 @@ class OpenAIClient(BaseLLMClient):
             start = time.perf_counter()
 
             # GPT-5/5.1 (reasoning model) の場合はResponses APIを使用
-            if "gpt-5" in model_id and "mini" not in model_id:
+            if model_id in ["gpt-5", "gpt-5.1"]:
                 return self._generate_with_responses_api(
                     prompt, model_id, system_prompt, reasoning_effort, verbosity, max_completion_tokens, start)
             else:
@@ -65,16 +65,10 @@ class OpenAIClient(BaseLLMClient):
         # トークン情報を取得
         input_tokens = response.usage.input_tokens if response.usage else 0
         output_tokens = response.usage.output_tokens if response.usage else 0
-        reasoning_tokens = 0
 
-        # reasoning_tokensを取得
-        if response.usage and hasattr(response.usage, 'output_tokens_details'):
-            details = response.usage.output_tokens_details
-            if details and hasattr(details, 'reasoning_tokens') and details.reasoning_tokens:
-                reasoning_tokens = details.reasoning_tokens
-                output_tokens = output_tokens - reasoning_tokens
-
-        return LLMResponse(content, input_tokens, output_tokens, elapsed_ms, model_id, None, reasoning_tokens)
+        # 生レスポンスを辞書に変換
+        raw = response.model_dump() if hasattr(response, 'model_dump') else {}
+        return LLMResponse(content, input_tokens, output_tokens, elapsed_ms, model_id, None, 0, raw)
 
     def _generate_with_chat_api(self, prompt: str, model_id: str,
                                  system_prompt: str, temperature: float, max_tokens: int, start: float) -> LLMResponse:
@@ -98,6 +92,8 @@ class OpenAIClient(BaseLLMClient):
         input_tokens = response.usage.prompt_tokens if response.usage else 0
         output_tokens = response.usage.completion_tokens if response.usage else 0
 
+        # 生レスポンスを辞書に変換
+        raw = response.model_dump() if hasattr(response, 'model_dump') else {}
         return LLMResponse(
             response.choices[0].message.content or "",
             input_tokens,
@@ -106,4 +102,5 @@ class OpenAIClient(BaseLLMClient):
             model_id,
             None,
             0,
+            raw,
         )
