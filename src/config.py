@@ -29,7 +29,7 @@ MODELS = {
     ],
     "xai": [
         ModelConfig("grok-4", "Grok 4", "xai", 3.00, 15.00),
-        ModelConfig("grok-4-1-fast-non-reasoning", "Grok 4.1 Fast", "xai", 0.20, 0.50),
+        ModelConfig("grok-4-1-fast-non-reasoning", "Grok 4.1 Fast (non-reasoning)", "xai", 0.20, 0.50),
         ModelConfig("grok-3-mini", "Grok 3 Mini", "xai", 0.30, 0.50),
     ],
 }
