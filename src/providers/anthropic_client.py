@@ -8,7 +8,8 @@ class AnthropicClient(BaseLLMClient):
         super().__init__(api_key)
         self.client = anthropic.Anthropic(api_key=api_key)
 
-    def generate(self, prompt: str, model_id: str,
+    def generate(self, prompt: str, model_id: str, 
+                 system_prompt: str = "",
                  extended_thinking: bool = False,
                  budget_tokens: int = 8000,
                  temperature: float = 0.0,
@@ -21,6 +22,9 @@ class AnthropicClient(BaseLLMClient):
                 "model": model_id,
                 "messages": [{"role": "user", "content": prompt}],
             }
+
+            if system_prompt:
+                params["system"] = system_prompt
 
             thinking_tokens = 0
 

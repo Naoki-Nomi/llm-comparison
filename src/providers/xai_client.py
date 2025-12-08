@@ -8,15 +8,22 @@ class XAIClient(BaseLLMClient):
         super().__init__(api_key)
         self.client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
 
-    def generate(self, prompt: str, model_id: str,
+    def generate(self, prompt: str, model_id: str, 
+                 system_prompt: str = "",
                  temperature: float = 0.0,
                  max_tokens: int = 10000,
                  **kwargs) -> LLMResponse:
         try:
             start = time.perf_counter()
+
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+
             response = self.client.chat.completions.create(
                 model=model_id,
-                messages=[{"role": "user", "content": prompt}],
+                messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
             )

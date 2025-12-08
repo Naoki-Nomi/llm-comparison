@@ -9,6 +9,7 @@ class OpenAIClient(BaseLLMClient):
         self.client = OpenAI(api_key=api_key)
 
     def generate(self, prompt: str, model_id: str, 
+                 system_prompt: str = "",
                  temperature: float = None, 
                  reasoning_effort: str = None,
                  verbosity: str = None,
@@ -19,15 +20,15 @@ class OpenAIClient(BaseLLMClient):
             # GPT-5/5.1 (reasoning model) の場合はResponses APIを使用
             if "gpt-5" in model_id and "mini" not in model_id:
                 return self._generate_with_responses_api(
-                    prompt, model_id, reasoning_effort, verbosity, max_completion_tokens, start)
+                    prompt, model_id, system_prompt, reasoning_effort, verbosity, max_completion_tokens, start)
             else:
                 return self._generate_with_chat_api(
-                    prompt, model_id, temperature, max_completion_tokens, start)
+                    prompt, model_id, system_prompt, temperature, max_completion_tokens, start)
         except Exception as e:
             return LLMResponse("", 0, 0, 0, model_id, str(e), 0)
 
     def _generate_with_responses_api(self, prompt: str, model_id: str,
-                                      reasoning_effort: str, verbosity: str,
+                                      system_prompt: str, reasoning_effort: str, verbosity: str,
                                       max_tokens: int, start: float) -> LLMResponse:
         """GPT-5/5.1用のResponses API"""
         params = {
@@ -35,6 +36,9 @@ class OpenAIClient(BaseLLMClient):
             "input": prompt,
             "max_output_tokens": max_tokens,
         }
+        # システムプロンプト設定
+        if system_prompt:
+            params["instructions"] = system_prompt
 
         # reasoning_effort設定
         if reasoning_effort:
@@ -73,14 +77,18 @@ class OpenAIClient(BaseLLMClient):
         return LLMResponse(content, input_tokens, output_tokens, elapsed_ms, model_id, None, reasoning_tokens)
 
     def _generate_with_chat_api(self, prompt: str, model_id: str,
-                                 temperature: float, max_tokens: int, start: float) -> LLMResponse:
+                                 system_prompt: str, temperature: float, max_tokens: int, start: float) -> LLMResponse:
         """GPT-4o等の通常モデル用のChat Completions API"""
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
         params = {
             "model": model_id,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": messages,
             "max_completion_tokens": max_tokens,
         }
-
         if temperature is not None:
             params["temperature"] = temperature
 

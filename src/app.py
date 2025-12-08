@@ -39,7 +39,7 @@ def get_model_params() -> dict:
         "grok_max_tokens": st.session_state.get("grok_max_tokens", 10000),
     }
 
-def run_generation(model: ModelConfig, prompt: str, params: dict) -> LLMResponse:
+def run_generation(model: ModelConfig, prompt: str, params: dict, system_prompt: str = "") -> LLMResponse:
     api_key = get_api_key(model.provider)
     if not api_key:
         return LLMResponse("", 0, 0, 0, model.id, f"APIキー未設定: {model.provider.upper()}_API_KEY", 0)
@@ -49,16 +49,19 @@ def run_generation(model: ModelConfig, prompt: str, params: dict) -> LLMResponse
     if model.provider == "openai":
         if "gpt-5.1" in model.id:
             return client.generate(prompt, model.id,
+                system_prompt=system_prompt,
                 reasoning_effort=params["gpt51_reasoning"],
                 verbosity=params["gpt51_verbosity"],
                 max_completion_tokens=params["gpt51_max_tokens"])
         else:
             return client.generate(prompt, model.id,
+                system_prompt=system_prompt,
                 reasoning_effort=params["gpt5_reasoning"],
                 verbosity=params["gpt5_verbosity"],
                 max_completion_tokens=params["gpt5_max_tokens"])
     elif model.provider == "anthropic":
         return client.generate(prompt, model.id,
+            system_prompt=system_prompt,
             extended_thinking=params["claude_thinking"],
             budget_tokens=params["claude_budget"],
             temperature=params["claude_temp"],
@@ -66,14 +69,17 @@ def run_generation(model: ModelConfig, prompt: str, params: dict) -> LLMResponse
     elif model.provider == "google":
         if "gemini-3" in model.id:
             return client.generate(prompt, model.id,
+                system_prompt=system_prompt,
                 thinking_level=params["gemini3_thinking_level"],
                 max_tokens=params["gemini3_max_tokens"])
         else:
             return client.generate(prompt, model.id,
+                system_prompt=system_prompt,
                 temperature=params["gemini_temp"],
                 max_tokens=params["gemini_max_tokens"])
     else:  # xai（全モデル共通）
         return client.generate(prompt, model.id,
+            system_prompt=system_prompt,
             temperature=params["grok_temp"],
             max_tokens=params["grok_max_tokens"])
 
@@ -86,7 +92,11 @@ def extract_pdf_text(file) -> str:
     doc.close()
     return text
 
-def get_prompt_input(key: str) -> str:
+def get_prompt_input(key: str) -> tuple[str, str]:
+    """プロンプト入力UIを表示し、(system_prompt, user_prompt)を返す"""
+    system_prompt = st.text_area("システムプロンプト（全モデル共通）", height=80, key=f"{key}_system",
+        placeholder="例: あなたは優秀なビジネスライターです。")
+
     prompt = st.text_area("プロンプト", height=200, key=f"{key}_prompt", placeholder="プロンプトを入力...\n\n{file_content} でファイル内容を挿入可能")
     with st.expander("📁 ファイル添付"):
         file = st.file_uploader("ファイル", type=["txt", "md", "csv", "json", "py", "pdf"], key=f"{key}_file")
@@ -109,7 +119,7 @@ def get_prompt_input(key: str) -> str:
                     prompt = f"{prompt}\n\n{content}" if prompt.strip() else content
             except Exception as e:
                 st.error(f"ファイル読み込みエラー: {e}")
-    return prompt
+    return system_prompt, prompt
 
 def render_sidebar():
     """サイドバーにパラメータ設定UIを表示"""
@@ -181,12 +191,12 @@ def main():
     with tab1:
         options = {m.name: m for m in all_models}
         model = options[st.selectbox("モデル", list(options.keys()))]
-        prompt = get_prompt_input("single")
+        system_prompt, prompt = get_prompt_input("single")
 
         if st.button("実行", type="primary", key="run1"):
             if prompt.strip():
                 with st.spinner(f"{model.name} 生成中..."):
-                    r = run_generation(model, prompt, params)
+                    r = run_generation(model, prompt, params, system_prompt)
                 if r.error:
                     st.error(r.error)
                 else:
@@ -203,7 +213,7 @@ def main():
                     if st.checkbox(m.name, value=False, key=f"cmp_{m.id}"):
                         selected.append(m)
 
-        prompt = get_prompt_input("compare")
+        system_prompt, prompt = get_prompt_input("compare")
 
         if st.button("比較実行", type="primary", key="run2"):
             if selected and prompt.strip():
@@ -212,7 +222,7 @@ def main():
 
                 for i, m in enumerate(selected):
                     progress_bar.progress(i / len(selected), text=f"{m.name} 生成中... ({i+1}/{len(selected)})")
-                    results[m.id] = run_generation(m, prompt, params)
+                    results[m.id] = run_generation(m, prompt, params, system_prompt)
 
                 progress_bar.progress(1.0, text="完了")
 

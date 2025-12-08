@@ -9,17 +9,21 @@ class GoogleClient(BaseLLMClient):
         super().__init__(api_key)
         self.client = genai.Client(api_key=api_key)
 
-    def generate(self, prompt: str, model_id: str,
+    def generate(self, prompt: str, model_id: str, 
+                 system_prompt: str = "",
                  temperature: float = 0.0,
                  max_tokens: int = 10000,
                  thinking_level: str = None,
                  **kwargs) -> LLMResponse:
         try:
             start = time.perf_counter()
-
             config_params = {
                 "max_output_tokens": max_tokens,
             }
+
+            # システムプロンプト設定
+            if system_prompt:
+                config_params["system_instruction"] = system_prompt
 
             # Gemini 3 Pro用: thinking_level設定、temperatureは1.0推奨なので設定しない
             if "gemini-3" in model_id:
