@@ -260,7 +260,7 @@ def main():
                             color=alt.Color("モデル:N", legend=None),
                         )
                         text = bars.mark_text(dy=-10, fontSize=14).encode(text="時間ラベル:N")
-                        st.altair_chart(bars + text, use_container_width=True)
+                        st.altair_chart(bars + text, width="stretch")
 
                     with col2:
                         st.subheader("💰 コスト")
@@ -271,10 +271,10 @@ def main():
                             color=alt.Color("モデル:N", legend=None),
                         )
                         text = bars.mark_text(dy=-10, fontSize=14).encode(text="コストラベル:N")
-                        st.altair_chart(bars + text, use_container_width=True)
+                        st.altair_chart(bars + text, width="stretch")
 
                     # 表
-                    st.dataframe(df.drop(columns=["時間ラベル", "コストラベル"]).style.format({"時間(秒)": "{:.2f}", "コスト(¥)": "¥{:.4f}"}), use_container_width=True)
+                    st.dataframe(df.drop(columns=["時間ラベル", "コストラベル"]).style.format({"時間(秒)": "{:.2f}", "コスト(¥)": "¥{:.4f}"}), width="stretch")
 
                 # レスポンス表示
                 st.subheader("📝 レスポンス")
