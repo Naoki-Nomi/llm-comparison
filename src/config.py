@@ -24,6 +24,7 @@ MODELS = {
     ],
     "google": [
         ModelConfig("gemini-3-pro-preview", "Gemini 3 Pro", "google", 2.00, 12.00),
+        ModelConfig("gemini-3-flash-preview", "Gemini 3 Flash", "google", 0.50, 0.30),
         ModelConfig("gemini-2.5-pro", "Gemini 2.5 Pro", "google", 1.25, 10.00),
         ModelConfig("gemini-2.5-flash", "Gemini 2.5 Flash", "google", 0.30, 2.50),
     ],

@@ -29,8 +29,11 @@ def get_model_params() -> dict:
         "claude_temp": st.session_state.get("claude_temp", 0.0),
         "claude_max_tokens": st.session_state.get("claude_max_tokens", 10000),
         # Gemini 3 Pro
-        "gemini3_thinking_level": st.session_state.get("gemini3_thinking_level", "low"),
-        "gemini3_max_tokens": st.session_state.get("gemini3_max_tokens", 10000),
+        "gemini3pro_thinking_level": st.session_state.get("gemini3pro_thinking_level", "low"),
+        "gemini3pro_max_tokens": st.session_state.get("gemini3pro_max_tokens", 10000),
+        # Gemini 3 Flash
+        "gemini3flash_thinking_level": st.session_state.get("gemini3flash_thinking_level", "minimal"),
+        "gemini3flash_max_tokens": st.session_state.get("gemini3flash_max_tokens", 10000),
         # Gemini 2.5系（共通）
         "gemini_temp": st.session_state.get("gemini_temp", 0.0),
         "gemini_max_tokens": st.session_state.get("gemini_max_tokens", 10000),
@@ -67,11 +70,16 @@ def run_generation(model: ModelConfig, prompt: str, params: dict, system_prompt:
             temperature=params["claude_temp"],
             max_tokens=params["claude_max_tokens"])
     elif model.provider == "google":
-        if "gemini-3" in model.id:
+        if "gemini-3-pro" in model.id:
             return client.generate(prompt, model.id,
                 system_prompt=system_prompt,
-                thinking_level=params["gemini3_thinking_level"],
-                max_tokens=params["gemini3_max_tokens"])
+                thinking_level=params["gemini3pro_thinking_level"],
+                max_tokens=params["gemini3pro_max_tokens"])
+        elif "gemini-3-flash" in model.id:
+            return client.generate(prompt, model.id,
+                system_prompt=system_prompt,
+                thinking_level=params["gemini3flash_thinking_level"],
+                max_tokens=params["gemini3flash_max_tokens"])
         else:
             return client.generate(prompt, model.id,
                 system_prompt=system_prompt,
@@ -161,9 +169,17 @@ def render_sidebar():
 
         # Gemini 3 Pro
         st.subheader("Gemini 3 Pro")
-        st.selectbox("thinking_level", options=["low", "high"], index=0, key="gemini3_thinking_level",
+        st.selectbox("thinking_level", options=["low", "high"], index=0, key="gemini3pro_thinking_level",
             help="推論の深さ。lowで高速、highで精度重視")
-        st.slider("max_tokens", 1000, 16000, 10000, 1000, key="gemini3_max_tokens")
+        st.slider("max_tokens", 1000, 16000, 10000, 1000, key="gemini3pro_max_tokens")
+
+        st.divider()
+
+        # Gemini 3 Flash
+        st.subheader("Gemini 3 Flash")
+        st.selectbox("thinking_level", options=["minimal", "low", "high"], index=0, key="gemini3flash_thinking_level",
+            help="推論の深さ。minimalで最速、lowで高速、highで精度重視")
+        st.slider("max_tokens", 1000, 16000, 10000, 1000, key="gemini3flash_max_tokens")
 
         st.divider()
 
